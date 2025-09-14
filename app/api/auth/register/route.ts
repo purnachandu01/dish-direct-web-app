@@ -49,8 +49,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User already exists" }, { status: 409 })
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    let hashedPassword: string
+    try {
+      hashedPassword = await bcrypt.hash(password, 12)
+    } catch (bcryptError) {
+      console.error("[v0] Bcrypt error:", bcryptError)
+      return NextResponse.json({ error: "Password encryption failed" }, { status: 500 })
+    }
 
     const newUser = {
       _id: Math.random().toString(36).substr(2, 9),
@@ -74,12 +79,16 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] User created:", { id: newUser._id, email: newUser.email, isVerified: newUser.isVerified })
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: newUser._id, email: newUser.email, role: newUser.role },
-      process.env.JWT_SECRET || "fallback-secret",
-      { expiresIn: "7d" },
-    )
+    let token: string
+    try {
+      const jwtSecret = process.env.JWT_SECRET || "fallback-secret-key-for-development"
+      token = jwt.sign({ userId: newUser._id, email: newUser.email, role: newUser.role }, jwtSecret, {
+        expiresIn: "7d",
+      })
+    } catch (jwtError) {
+      console.error("[v0] JWT error:", jwtError)
+      return NextResponse.json({ error: "Token generation failed" }, { status: 500 })
+    }
 
     // Return user data (without password)
     const { password: _, ...userWithoutPassword } = newUser
@@ -91,6 +100,12 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("[v0] Registration error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Registration failed. Please try again.",
+        details: process.env.NODE_ENV === "development" ? String(error) : undefined,
+      },
+      { status: 500 },
+    )
   }
 }

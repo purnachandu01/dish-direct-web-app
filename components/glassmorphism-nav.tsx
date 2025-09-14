@@ -56,7 +56,7 @@ export function GlassmorphismNav() {
               </Button>
             </Link>
             <Link href="/auth/sign-up">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground ripple-effect">
+              <Button className="bg-primary hover:bg-primary/90 text-white ripple-effect drop-shadow-lg">
                 Get Started
               </Button>
             </Link>
@@ -120,7 +120,7 @@ export function GlassmorphismNav() {
                   </Button>
                 </Link>
                 <Link href="/auth/sign-up">
-                  <Button className="justify-start bg-primary hover:bg-primary/90 text-primary-foreground w-full">
+                  <Button className="justify-start bg-primary hover:bg-primary/90 text-white w-full drop-shadow-lg">
                     Get Started
                   </Button>
                 </Link>

@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Mail, Phone, User } from "lucide-react"
+import { Eye, EyeOff, Mail, Phone, User, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const COUNTRY_CODES = [
   { code: "+1", country: "US", flag: "🇺🇸" },
@@ -26,11 +27,12 @@ export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    countryCode: "+91", // Added country code state
+    countryCode: "+91",
     password: "",
     role: "user",
     otp: "",
@@ -39,6 +41,9 @@ export function SignUpForm() {
 
   const sendOTP = async (phone: string, email: string) => {
     try {
+      setError(null)
+      console.log("[v0] Sending OTP to:", { phone: formData.countryCode + phone, email })
+
       const response = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,6 +51,7 @@ export function SignUpForm() {
       })
 
       const data = await response.json()
+      console.log("[v0] OTP response:", { status: response.status, data })
 
       if (response.ok) {
         console.log("[v0] OTP sent successfully")
@@ -55,12 +61,12 @@ export function SignUpForm() {
         return true
       } else {
         console.log("[v0] OTP sending failed:", data.error)
-        alert(data.error || "Failed to send OTP")
+        setError(data.error || "Failed to send OTP")
         return false
       }
     } catch (error) {
       console.error("[v0] OTP sending error:", error)
-      alert("Network error. Please check your connection.")
+      setError("Network error. Please check your connection.")
       return false
     }
   }
@@ -68,16 +74,24 @@ export function SignUpForm() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
     if (!otpSent) {
       const otpSent = await sendOTP(formData.phone, formData.email)
       if (otpSent) {
         setOtpSent(true)
-      } else {
-        alert("Failed to send OTP. Please try again.")
       }
     } else {
       try {
+        console.log("[v0] Attempting registration with data:", {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.countryCode + formData.phone,
+          role: formData.role,
+          hasOtp: !!formData.otp,
+          hasPassword: !!formData.password,
+        })
+
         const response = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -87,16 +101,29 @@ export function SignUpForm() {
           }),
         })
 
+        let data
+        try {
+          data = await response.json()
+        } catch (parseError) {
+          console.error("[v0] Failed to parse response as JSON:", parseError)
+          setError("Server error. Please try again later.")
+          setIsLoading(false)
+          return
+        }
+
+        console.log("[v0] Registration response:", { status: response.status, data })
+
         if (response.ok) {
-          const data = await response.json()
+          console.log("[v0] Registration successful, redirecting to dashboard")
           localStorage.setItem("token", data.token)
           window.location.href = "/dashboard"
         } else {
-          alert("Registration failed. Please try again.")
+          console.error("[v0] Registration failed:", data.error)
+          setError(data.error || "Registration failed. Please try again.")
         }
       } catch (error) {
         console.error("[v0] Registration error:", error)
-        alert("Registration failed. Please try again.")
+        setError("Network error. Please check your connection and try again.")
       }
     }
     setIsLoading(false)
@@ -123,6 +150,13 @@ export function SignUpForm() {
         <CardDescription className="text-white/70">Start your journey of sharing meals and hope</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert className="mb-4 bg-red-500/20 border-red-500/50 text-red-100">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSignUp} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-white">
@@ -135,9 +169,13 @@ export function SignUpForm() {
                 type="text"
                 placeholder="Enter your full name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value })
+                  setError(null)
+                }}
                 className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
                 required
+                minLength={2}
               />
             </div>
           </div>
@@ -153,7 +191,10 @@ export function SignUpForm() {
                 type="email"
                 placeholder="Enter your email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value })
+                  setError(null)
+                }}
                 className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
                 required
               />
@@ -191,9 +232,13 @@ export function SignUpForm() {
                   type="tel"
                   placeholder="1234567890"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, phone: e.target.value })
+                    setError(null)
+                  }}
                   className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
                   required
+                  minLength={10}
                 />
               </div>
             </div>
@@ -231,9 +276,13 @@ export function SignUpForm() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Create a strong password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, password: e.target.value })
+                  setError(null)
+                }}
                 className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
                 required
+                minLength={6}
               />
               <Button
                 type="button"
@@ -257,7 +306,10 @@ export function SignUpForm() {
                 type="text"
                 placeholder="Enter 6-digit code"
                 value={formData.otp}
-                onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, otp: e.target.value })
+                  setError(null)
+                }}
                 className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
                 maxLength={6}
                 required
