@@ -30,7 +30,7 @@ export default function DiscoverPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | undefined>()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [viewMode, setViewMode] = useState<"map" | "list">("map")
+  const [viewMode, setViewMode] = useState<"map" | "list">("list")
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
 
   const handleLocationDetected = async (location: { lat: number; lng: number }) => {
@@ -132,30 +132,17 @@ export default function DiscoverPage() {
 
           {/* Content */}
           {!isLoading && restaurants.length > 0 && (
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Map or List View */}
-              <div className="lg:col-span-1">
-                {viewMode === "map" ? (
-                  <div className="h-[600px] rounded-lg overflow-hidden">
-                    <InteractiveMap
-                      userLocation={userLocation}
-                      restaurants={restaurants}
-                      onRestaurantSelect={handleRestaurantSelect}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-[600px] overflow-y-auto">
-                    <RestaurantList
-                      restaurants={restaurants}
-                      onRestaurantSelect={handleRestaurantSelect}
-                      userLocation={userLocation}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Restaurant List (always visible on desktop) */}
-              <div className="lg:col-span-1">
+            <div className="max-w-6xl mx-auto">
+              {viewMode === "map" ? (
+                <div className="h-[600px] rounded-lg overflow-hidden">
+                  <InteractiveMap
+                    restaurants={restaurants}
+                    userLocation={userLocation}
+                    onRestaurantSelect={handleRestaurantSelect}
+                    selectedRestaurant={selectedRestaurant}
+                  />
+                </div>
+              ) : (
                 <div className="h-[600px] overflow-y-auto">
                   <RestaurantList
                     restaurants={restaurants}
@@ -163,7 +150,7 @@ export default function DiscoverPage() {
                     userLocation={userLocation}
                   />
                 </div>
-              </div>
+              )}
             </div>
           )}
 

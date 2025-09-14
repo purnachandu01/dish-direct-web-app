@@ -1,12 +1,15 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Star, Heart, Clock, Search } from "lucide-react"
+import { MapPin, Star, Heart, Clock, Search, Navigation } from "lucide-react"
+import { RestaurantDonationModal } from "@/components/donation/restaurant-donation-modal"
 
 interface Restaurant {
   id: string
@@ -34,6 +37,8 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
   const [searchTerm, setSearchTerm] = useState("")
   const [cuisineFilter, setCuisineFilter] = useState("all")
   const [sortBy, setSortBy] = useState("distance")
+  const [selectedRestaurantForDonation, setSelectedRestaurantForDonation] = useState<Restaurant | null>(null)
+  const [showDonationModal, setShowDonationModal] = useState(false)
 
   // Get unique cuisines
   const cuisines = Array.from(new Set(restaurants.map((r) => r.cuisine)))
@@ -57,6 +62,23 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
           return 0
       }
     })
+
+  const handleDonate = (restaurant: Restaurant, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+    setSelectedRestaurantForDonation(restaurant)
+    setShowDonationModal(true)
+  }
+
+  const getDirections = (restaurant: Restaurant, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+    if (userLocation) {
+      const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${restaurant.lat},${restaurant.lng}`
+      window.open(url, "_blank")
+    } else {
+      const url = `https://www.google.com/maps/search/?api=1&query=${restaurant.lat},${restaurant.lng}`
+      window.open(url, "_blank")
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -167,10 +189,20 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
                 <Button
                   size="sm"
                   variant="outline"
+                  onClick={(e) => handleDonate(restaurant, e)}
                   className="border-white/20 text-white hover:bg-white/10 bg-transparent"
                 >
                   <Heart className="w-4 h-4 mr-1" />
                   Donate
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => getDirections(restaurant, e)}
+                  className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                >
+                  <Navigation className="w-4 h-4 mr-1" />
+                  Directions
                 </Button>
                 <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                   Redeem
@@ -190,6 +222,14 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
           </Card>
         )}
       </div>
+
+      {/* Restaurant donation modal */}
+      <RestaurantDonationModal
+        restaurant={selectedRestaurantForDonation}
+        isOpen={showDonationModal}
+        onClose={() => setShowDonationModal(false)}
+        userLocation={userLocation}
+      />
     </div>
   )
 }

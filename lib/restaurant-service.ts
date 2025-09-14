@@ -152,12 +152,30 @@ async function fetchFromOverpassAPI(lat: number, lng: number, radiusKm = 10): Pr
 
         const distance = calculateDistance(lat, lng, elementLat, elementLng)
 
+        let address = "Address not available"
+        if (element.tags) {
+          const addressParts = []
+          if (element.tags["addr:housenumber"]) addressParts.push(element.tags["addr:housenumber"])
+          if (element.tags["addr:street"]) addressParts.push(element.tags["addr:street"])
+          if (element.tags["addr:suburb"]) addressParts.push(element.tags["addr:suburb"])
+          if (element.tags["addr:city"]) addressParts.push(element.tags["addr:city"])
+          if (element.tags["addr:state"]) addressParts.push(element.tags["addr:state"])
+
+          if (addressParts.length > 0) {
+            address = addressParts.join(", ")
+          } else if (element.tags["addr:full"]) {
+            address = element.tags["addr:full"]
+          } else if (element.tags["addr:street"]) {
+            address = element.tags["addr:street"]
+          }
+        }
+
         return {
           id: `osm-${element.id}`,
           name: element.tags?.name || "Unknown Restaurant",
           lat: elementLat,
           lng: elementLng,
-          address: element.tags?.["addr:full"] || element.tags?.["addr:street"] || "Address not available",
+          address,
           cuisine: element.tags?.cuisine || "Restaurant",
           rating: Math.random() * 2 + 3, // Random rating between 3-5
           verified: Math.random() > 0.7, // 30% chance of being verified

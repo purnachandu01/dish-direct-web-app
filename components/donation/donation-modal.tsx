@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Heart, Star, MapPin, CreditCard, Gift, Zap } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Heart, Star, MapPin, CreditCard, Gift, Zap, Smartphone, Wallet } from "lucide-react"
 
 interface Restaurant {
   id: string
@@ -24,16 +25,44 @@ interface DonationModalProps {
   onClose: () => void
   restaurant: Restaurant | null
   onDonationComplete: (donation: any) => void
+  preselectedAmount?: number | null // Add preselected amount prop
 }
 
 const DONATION_AMOUNTS = [5, 10, 25, 50, 100]
 
-export function DonationModal({ isOpen, onClose, restaurant, onDonationComplete }: DonationModalProps) {
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
+const PAYMENT_METHODS = [
+  { id: "card", name: "Credit/Debit Card", icon: CreditCard, description: "Visa, Mastercard, American Express" },
+  { id: "upi", name: "UPI", icon: Smartphone, description: "PhonePe, Google Pay, Paytm" },
+  { id: "wallet", name: "Digital Wallet", icon: Wallet, description: "PayPal, Razorpay Wallet" },
+]
+
+export function DonationModal({
+  isOpen,
+  onClose,
+  restaurant,
+  onDonationComplete,
+  preselectedAmount,
+}: DonationModalProps) {
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(preselectedAmount || null)
   const [customAmount, setCustomAmount] = useState("")
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [donorMessage, setDonorMessage] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("card")
+  const [cardDetails, setCardDetails] = useState({
+    number: "",
+    expiry: "",
+    cvv: "",
+    name: "",
+  })
+  const [upiId, setUpiId] = useState("")
+
+  useEffect(() => {
+    if (preselectedAmount) {
+      setSelectedAmount(preselectedAmount)
+      setCustomAmount("")
+    }
+  }, [preselectedAmount])
 
   const finalAmount = selectedAmount || Number.parseFloat(customAmount) || 0
   const tokensToEarn = Math.floor(finalAmount / 5) // 1 token per $5
@@ -45,8 +74,8 @@ export function DonationModal({ isOpen, onClose, restaurant, onDonationComplete 
     setIsProcessing(true)
 
     try {
-      // TODO: Integrate with Stripe
-      const donationData = {
+      // Create payment intent based on selected method
+      const paymentData = {
         restaurantId: restaurant?.id,
         amount: finalAmount,
         tokens: tokensToEarn,
@@ -54,15 +83,61 @@ export function DonationModal({ isOpen, onClose, restaurant, onDonationComplete 
         isAnonymous,
         message: donorMessage,
         timestamp: new Date().toISOString(),
+        paymentMethod: selectedPaymentMethod,
       }
 
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Process payment based on selected method
+      if (selectedPaymentMethod === "card") {
+        // Validate card details
+        if (!cardDetails.number || !cardDetails.expiry || !cardDetails.cvv || !cardDetails.name) {
+          throw new Error("Please fill in all card details")
+        }
 
-      onDonationComplete(donationData)
+        // TODO: Integrate with Stripe for card payments
+        console.log("[v0] Processing card payment:", { ...cardDetails, number: cardDetails.number.slice(-4) })
+
+        // Simulate Stripe payment processing
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+      } else if (selectedPaymentMethod === "upi") {
+        // Validate UPI ID
+        if (!upiId) {
+          throw new Error("Please enter your UPI ID")
+        }
+
+        // TODO: Integrate with UPI payment gateway
+        console.log("[v0] Processing UPI payment:", upiId)
+
+        // Simulate UPI payment processing
+        await new Promise((resolve) => setTimeout(resolve, 2500))
+      } else if (selectedPaymentMethod === "wallet") {
+        // TODO: Integrate with PayPal/Razorpay Wallet
+        console.log("[v0] Processing wallet payment")
+
+        // Simulate wallet payment processing
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+      }
+
+      // TODO: Send payment data to backend API
+      const response = await fetch("/api/donations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(paymentData),
+      })
+
+      if (!response.ok) {
+        throw new Error("Payment processing failed")
+      }
+
+      const result = await response.json()
+      console.log("[v0] Payment successful:", result)
+
+      onDonationComplete(paymentData)
       onClose()
     } catch (error) {
       console.error("Donation failed:", error)
+      alert(`Payment failed: ${error.message}`)
     } finally {
       setIsProcessing(false)
     }
@@ -73,6 +148,9 @@ export function DonationModal({ isOpen, onClose, restaurant, onDonationComplete 
     setCustomAmount("")
     setIsAnonymous(false)
     setDonorMessage("")
+    setSelectedPaymentMethod("card")
+    setCardDetails({ number: "", expiry: "", cvv: "", name: "" })
+    setUpiId("")
   }
 
   return (
@@ -85,7 +163,7 @@ export function DonationModal({ isOpen, onClose, restaurant, onDonationComplete 
         }
       }}
     >
-      <DialogContent className="glassmorphism border-white/20 text-white max-w-md">
+      <DialogContent className="glassmorphism border-white/20 text-white max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">Donate Meals</DialogTitle>
           <DialogDescription className="text-white/70 text-center">
@@ -160,6 +238,75 @@ export function DonationModal({ isOpen, onClose, restaurant, onDonationComplete 
               />
             </div>
           </div>
+
+          {finalAmount >= 5 && (
+            <div>
+              <Label className="text-white mb-3 block">Payment Method</Label>
+              <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white focus:border-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/20">
+                  {PAYMENT_METHODS.map((method) => (
+                    <SelectItem key={method.id} value={method.id} className="text-white hover:bg-white/10">
+                      <div className="flex items-center gap-2">
+                        <method.icon className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">{method.name}</div>
+                          <div className="text-xs text-white/60">{method.description}</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedPaymentMethod === "card" && (
+                <div className="mt-4 space-y-3">
+                  <Input
+                    placeholder="Card Number"
+                    value={cardDetails.number}
+                    onChange={(e) => setCardDetails((prev) => ({ ...prev, number: e.target.value }))}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+                    maxLength={19}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="MM/YY"
+                      value={cardDetails.expiry}
+                      onChange={(e) => setCardDetails((prev) => ({ ...prev, expiry: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+                      maxLength={5}
+                    />
+                    <Input
+                      placeholder="CVV"
+                      value={cardDetails.cvv}
+                      onChange={(e) => setCardDetails((prev) => ({ ...prev, cvv: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+                      maxLength={4}
+                    />
+                  </div>
+                  <Input
+                    placeholder="Cardholder Name"
+                    value={cardDetails.name}
+                    onChange={(e) => setCardDetails((prev) => ({ ...prev, name: e.target.value }))}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+                  />
+                </div>
+              )}
+
+              {selectedPaymentMethod === "upi" && (
+                <div className="mt-4">
+                  <Input
+                    placeholder="Enter UPI ID (e.g., user@paytm)"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Rewards preview */}
           {finalAmount >= 5 && (

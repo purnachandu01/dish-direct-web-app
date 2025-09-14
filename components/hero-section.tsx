@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { MapPin, Heart, Users, Zap } from "lucide-react"
+import Link from "next/link"
 
 export function HeroSection() {
   return (
@@ -33,21 +34,25 @@ export function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-4 ripple-effect"
-            >
-              <Heart className="w-5 h-5 mr-2" />
-              Start Donating
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 bg-transparent"
-            >
-              <MapPin className="w-5 h-5 mr-2" />
-              Explore Map
-            </Button>
+            <Link href="/donate">
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 py-4 ripple-effect"
+              >
+                <Heart className="w-5 h-5 mr-2" />
+                Start Donating
+              </Button>
+            </Link>
+            <Link href="/discover">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 bg-transparent"
+              >
+                <MapPin className="w-5 h-5 mr-2" />
+                Explore Map
+              </Button>
+            </Link>
           </div>
 
           {/* Feature cards */}

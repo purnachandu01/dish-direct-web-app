@@ -9,6 +9,7 @@ import { PaymentSuccess } from "@/components/donation/payment-success"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Heart, TrendingUp, Users, Gift } from "lucide-react"
+import { RestaurantSelector } from "@/components/donation/restaurant-selector"
 
 interface Donation {
   id: string
@@ -29,6 +30,7 @@ export default function DonatePage() {
   const [showDonationModal, setShowDonationModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [lastDonation, setLastDonation] = useState<any>(null)
+  const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null)
 
   // Mock restaurant for quick donate
   const mockRestaurant = {
@@ -58,10 +60,9 @@ export default function DonatePage() {
     }
   }
 
-  const handleQuickDonate = (amount: number) => {
-    // Process quick donation
+  const handleQuickDonate = (amount: number, restaurant: any) => {
     const donation = {
-      restaurantId: mockRestaurant.id,
+      restaurantId: restaurant.id,
       amount,
       tokens: Math.floor(amount / 5),
       scratchCards: Math.floor(amount / 10),
@@ -72,15 +73,14 @@ export default function DonatePage() {
 
     setLastDonation({
       ...donation,
-      restaurantName: mockRestaurant.name,
+      restaurantName: restaurant.name,
     })
     setShowSuccessModal(true)
 
-    // Add to donations list
     const newDonation: Donation = {
       id: `donation_${Date.now()}`,
-      restaurantName: mockRestaurant.name,
-      restaurantAddress: mockRestaurant.address,
+      restaurantName: restaurant.name,
+      restaurantAddress: restaurant.address,
       amount,
       tokens: Math.floor(amount / 5),
       scratchCards: Math.floor(amount / 10),
@@ -96,11 +96,10 @@ export default function DonatePage() {
     setLastDonation(donation)
     setShowSuccessModal(true)
 
-    // Add to donations list
     const newDonation: Donation = {
       id: `donation_${Date.now()}`,
-      restaurantName: mockRestaurant.name,
-      restaurantAddress: mockRestaurant.address,
+      restaurantName: selectedRestaurant?.name || "Unknown Restaurant",
+      restaurantAddress: selectedRestaurant?.address || "Unknown Address",
       ...donation,
       status: "completed",
     }
@@ -162,17 +161,19 @@ export default function DonatePage() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Quick donate */}
-            <div className="lg:col-span-1">
-              <QuickDonate onDonate={handleQuickDonate} />
+            <div className="lg:col-span-1 space-y-6">
+              <RestaurantSelector onSelectRestaurant={setSelectedRestaurant} selectedRestaurant={selectedRestaurant} />
+
+              <QuickDonate onDonate={handleQuickDonate} selectedRestaurant={selectedRestaurant} />
 
               <div className="mt-6">
                 <Button
                   onClick={() => setShowDonationModal(true)}
                   variant="outline"
                   className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent"
+                  disabled={!selectedRestaurant}
                 >
-                  Custom Donation
+                  {!selectedRestaurant ? "Select Restaurant First" : "Custom Donation"}
                 </Button>
               </div>
             </div>
@@ -195,7 +196,7 @@ export default function DonatePage() {
       <DonationModal
         isOpen={showDonationModal}
         onClose={() => setShowDonationModal(false)}
-        restaurant={mockRestaurant}
+        restaurant={selectedRestaurant}
         onDonationComplete={handleDonationComplete}
       />
 
